@@ -1,11 +1,10 @@
-﻿import React, { ChangeEvent, useEffect, useState } from 'react';
-
-import { ValidationError } from 'yup';
+﻿import { AppGridColDef } from '@/components/app-data-grid/types/AppGridColDef';
 
 import { TextField } from '@mui/material';
 import { GridColDef, GridRenderCellParams, useGridApiContext } from '@mui/x-data-grid';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 
-import { AppGridColDef } from 'shared/components/app-data-grid/types/AppGridColDef';
+import { ValidationError } from 'yup';
 
 const GridTextField = ({ value: valueProp, field, id }: GridRenderCellParams<any, string>) => {
   const apiRef = useGridApiContext();
@@ -34,8 +33,6 @@ const GridTextField = ({ value: valueProp, field, id }: GridRenderCellParams<any
     setValue(valueProp ?? '');
   }, [valueProp]);
 
-  console.log('grid text field render...');
-
   return (
     <TextField
       value={value ?? ''}
@@ -44,6 +41,7 @@ const GridTextField = ({ value: valueProp, field, id }: GridRenderCellParams<any
       variant="standard"
       error={!!error}
       helperText={error || ' '}
+      sx={{ mt: 2, mx: 1 }}
       onChange={handleChange}
     />
   );

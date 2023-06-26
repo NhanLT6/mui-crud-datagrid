@@ -1,8 +1,8 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Register from '@/pages/Auth/Register';
 import Login from '@/pages/Auth/Login';
+import Register from '@/pages/Auth/Register';
 import Home from '@/pages/Home/Home';
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
 
 const Routing = () => {
   return (

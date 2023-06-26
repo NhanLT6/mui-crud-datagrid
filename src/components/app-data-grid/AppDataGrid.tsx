@@ -1,13 +1,14 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
-import { includes, isFunction } from 'lodash';
-import { ValidationError } from 'yup';
-
-import { Cancel, Edit, Save } from '@mui/icons-material';
-import DeleteIcon from '@mui/icons-material/Delete';
+﻿import GridCancelButton from '@/components/app-data-grid/components/GridCancelButton';
+import GridDeleteButton from '@/components/app-data-grid/components/GridDeleteButton';
+import GridEditButton from '@/components/app-data-grid/components/GridEditButton';
+import GridSaveButton from '@/components/app-data-grid/components/GridSaveButton';
+import renderTextInputCell from '@/components/app-data-grid/components/input-components/GridTextField';
+import { AppGridColDef } from '@/components/app-data-grid/types/AppGridColDef';
+import { AppQueryParam } from '@/components/app-data-grid/types/AppQueryParam';
+import { AppQueryResult } from '@/components/app-data-grid/types/AppQueryResult';
+import { SxProps } from '@mui/material';
 import {
   DataGrid,
-  GridActionsCellItem,
   GridColDef,
   GridFeatureMode,
   GridPaginationModel,
@@ -23,10 +24,9 @@ import {
   MuiEvent,
 } from '@mui/x-data-grid';
 
-import renderTextInputCell from 'shared/components/app-data-grid/components/input-components/GridTextField';
-import { AppGridColDef } from 'shared/components/app-data-grid/types/AppGridColDef';
-import { AppQueryParam } from 'shared/components/app-data-grid/types/AppQueryParam';
-import { AppQueryResult } from 'shared/components/app-data-grid/types/AppQueryResult';
+import { isFunction } from 'lodash';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ValidationError } from 'yup';
 
 import './app-data-grid.scss';
 
@@ -37,22 +37,23 @@ import EditToolbar from './components/EditToolbar';
 interface AppDataGridProps {
   columns: AppGridColDef[];
   data: ((query: AppQueryParam) => Promise<AppQueryResult>) | Array<Record<string, any>>;
-
   getRowId?: GridRowIdGetter<any> | undefined;
+
   showCheckboxSelection?: boolean;
   resetSelectionOnPageSizeChanged?: boolean;
   hideSelectAllButton?: boolean;
+  singleCheckboxSelection?: boolean;
+  onRowSelectionChange?: (rowSelectionModel: GridRowSelectionModel) => void;
 
   enableInlineEdit?: boolean;
-  initialValues?: Record<string, any>;
   onAdd?: () => void;
-  onEdit?: (id: GridRowId) => void;
+  onEdit?: (model?: Record<string, any>) => void;
+  onSave?: (model?: Record<string, any>) => void;
   onDelete?: (id: GridRowId) => void;
 
   onSortChange?: (model: GridSortModel) => void;
 
   onPaginationChange?: (model: GridPaginationModel) => void;
-  onRowSelectionChange?: (rowSelectionModel: GridRowSelectionModel) => void;
 
   [k: string]: any; // Other props of MUI Data grid
 }
@@ -64,12 +65,17 @@ const AppDataGrid = ({
   data,
   getRowId,
   showCheckboxSelection,
+  resetSelectionOnPageSizeChanged = true,
   hideSelectAllButton,
+  singleCheckboxSelection,
+  onRowSelectionChange,
   onSortChange,
   onPaginationChange,
-  onRowSelectionChange,
-  resetSelectionOnPageSizeChanged = true,
   enableInlineEdit,
+  onAdd,
+  onEdit,
+  onSave,
+  onDelete,
   ...rest
 }: AppDataGridProps) => {
   const gridMode: GridFeatureMode = isFunction(data) ? 'server' : 'client';
@@ -126,8 +132,11 @@ const AppDataGrid = ({
   };
 
   const onRowSelectionModelChange = (model: GridRowSelectionModel) => {
-    onRowSelectionChange?.(model);
-    setSelectedRowModel(model);
+    const newValues = !singleCheckboxSelection ? model : model.filter((newId) => !selectedRowModel.includes(newId));
+    console.log('newValues', newValues);
+
+    onRowSelectionChange?.(newValues);
+    setSelectedRowModel(newValues);
   };
 
   const onPaginationModelChange = (model: GridPaginationModel) => {
@@ -156,20 +165,39 @@ const AppDataGrid = ({
 
   const onAddRow = () => {
     console.log('Grid toolbar add');
+    onAdd?.();
   };
 
   const onEditRow = useCallback(
     (id: GridRowId) => () => {
       setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+
+      const modelWithId = rows.map((r) => {
+        const id = getRowId?.(r)?.toString() ?? '';
+
+        return { id, model: r };
+      });
+
+      const model = modelWithId.find((m) => m.id === id.toString())?.model;
+      onEdit?.(model);
     },
-    [rowModesModel]
+    [getRowId, onEdit, rowModesModel, rows],
   );
 
   const onSaveRow = useCallback(
     (id: GridRowId) => () => {
       setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+
+      const modelWithId = rows.map((r) => {
+        const id = getRowId?.(r)?.toString() ?? '';
+
+        return { id, model: r };
+      });
+
+      const model = modelWithId.find((m) => m.id === id.toString())?.model;
+      onSave?.(model);
     },
-    [rowModesModel]
+    [getRowId, onSave, rowModesModel, rows],
   );
 
   const onCancelRow = useCallback(
@@ -179,14 +207,15 @@ const AppDataGrid = ({
         [id]: { mode: GridRowModes.View, ignoreModifications: true },
       });
     },
-    [rowModesModel]
+    [rowModesModel],
   );
 
   const onDeleteRow = useCallback(
     (id: GridRowId) => () => {
       setRows(rows.filter((row) => row.id !== id));
+      onDelete?.(id);
     },
-    [rows]
+    [onDelete, rows],
   );
 
   // Set some values for column to reduce boilerplate code when defining columns
@@ -228,34 +257,14 @@ const AppDataGrid = ({
 
           if (isInEditMode) {
             return [
-              <GridActionsCellItem key="saveButton" icon={<Save />} label="Save" onClick={onSaveRow(id)} />,
-              <GridActionsCellItem
-                key="cancelButton"
-                icon={<Cancel />}
-                label="Cancel"
-                className="textPrimary"
-                onClick={onCancelRow(id)}
-                color="inherit"
-              />,
+              <GridSaveButton key="saveButton" rowId={id} onClick={onSaveRow(id)} />,
+              <GridCancelButton key="cancelButton" rowId={id} onClick={onCancelRow(id)} />,
             ];
           }
 
           return [
-            <GridActionsCellItem
-              key="editButton"
-              icon={<Edit />}
-              label="Edit"
-              className="textPrimary"
-              onClick={onEditRow(id)}
-              color="inherit"
-            />,
-            <GridActionsCellItem
-              key="deleteButton"
-              icon={<DeleteIcon />}
-              label="Delete"
-              onClick={onDeleteRow(id)}
-              color="inherit"
-            />,
+            <GridEditButton key="editButton" rowId={id} onClick={onEditRow(id)} />,
+            <GridDeleteButton key="deleteButton" rowId={id} onClick={onDeleteRow(id)} />,
           ];
         },
       };
@@ -278,6 +287,20 @@ const AppDataGrid = ({
     return editingRow ? 'auto' : 52;
   };
 
+  const gridSxProps: SxProps = {
+    // Disable Select All button if needed
+    '& .MuiDataGrid-columnHeaderCheckbox .MuiDataGrid-columnHeaderTitleContainer': {
+      display: hideSelectAllButton ? 'none' : 'block',
+    },
+    // Disable border of selected cell
+    '& .MuiDataGrid-cell:focus-within, & .MuiDataGrid-cell:focus': {
+      outline: 'none !important',
+    },
+    '& .MuiDataGrid-columnHeader:focus-within, & .MuiDataGrid-columnHeader:focus': {
+      outline: 'none !important',
+    },
+  };
+
   return (
     <DataGrid
       columns={transformedColumns}
@@ -287,6 +310,7 @@ const AppDataGrid = ({
       slots={{
         pagination: CustomGridPagination,
         noRowsOverlay: CustomGridNoData,
+        noResultsOverlay: CustomGridNoData,
         toolbar: enableInlineEdit ? EditToolbar : undefined,
       }}
       slotProps={{
@@ -312,11 +336,7 @@ const AppDataGrid = ({
       onRowEditStart={onRowEditStart}
       onRowEditStop={onRowEditStop}
       getRowHeight={getRowHeight}
-      sx={{
-        '& .MuiDataGrid-columnHeaderCheckbox .MuiDataGrid-columnHeaderTitleContainer': {
-          display: hideSelectAllButton ? 'none' : 'block',
-        },
-      }}
+      sx={gridSxProps}
       {...rest}
     />
   );
