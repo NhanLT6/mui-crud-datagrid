@@ -1,7 +1,8 @@
 ﻿import AppDataGrid from '@/components/app-data-grid/AppDataGrid';
 import { AppGridColDef } from '@/components/app-data-grid/types/AppGridColDef';
-import AddIcon from '@mui/icons-material/Add';
-import { Box, Fab, Typography } from '@mui/material';
+import { AppQueryParam } from '@/components/app-data-grid/types/AppQueryParam';
+import { AppQueryResult } from '@/components/app-data-grid/types/AppQueryResult';
+import { Box, Typography } from '@mui/material';
 import { GridValueGetterParams, useGridApiRef } from '@mui/x-data-grid';
 import React from 'react';
 
@@ -37,7 +38,7 @@ const TestDataGrid = () => {
     },
   ];
 
-  const data = [
+  const rawData = [
     { id: 1, lastName: 'Snow', firstName: 'Jon', age: 35 },
     { id: 2, lastName: 'Lannister', firstName: 'Cersei', age: 42 },
     { id: 3, lastName: 'Lannister', firstName: 'Jaime', age: 45 },
@@ -49,6 +50,21 @@ const TestDataGrid = () => {
     { id: 9, lastName: 'Roxie', firstName: 'Harvey', age: 65 },
   ];
 
+  const data = (query: AppQueryParam): Promise<AppQueryResult> => {
+    const result = rawData
+      .filter((item) =>
+        query.searchText ? JSON.stringify(item).toLowerCase().includes(query.searchText.toLowerCase()) : true,
+      )
+      .slice(query.pagination.page, (query.pagination.page + 1) * query.pagination.pageSize);
+
+    return Promise.resolve({
+      resultCount: result.length,
+      pageNumber: query.pagination.page + 1,
+      pageSize: query.pagination.pageSize,
+      rows: result,
+    });
+  };
+
   const apiRef = useGridApiRef();
 
   return (
@@ -57,13 +73,18 @@ const TestDataGrid = () => {
         <Typography variant="h3" sx={{ mb: 2 }}>
           MUI CRUD DataGrid
         </Typography>
-
-        <Fab size="small" color="primary" aria-label="add" onClick={(e) => console.log(e)}>
-          <AddIcon />
-        </Fab>
       </Box>
 
-      <AppDataGrid apiRef={apiRef} columns={columns} data={data} enableInlineEdit />
+      <Box sx={{ height: 600 }}>
+        <AppDataGrid
+          apiRef={apiRef}
+          columns={columns}
+          data={data}
+          title={<Typography variant="h4">CRUD table</Typography>}
+          enableInlineEdit
+          onAdd={() => console.log('Add')}
+        />
+      </Box>
     </div>
   );
 };

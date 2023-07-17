@@ -3,4 +3,5 @@
 export interface AppQueryParam {
   pagination: GridPaginationModel;
   sorting: GridSortModel;
+  searchText?: string;
 }

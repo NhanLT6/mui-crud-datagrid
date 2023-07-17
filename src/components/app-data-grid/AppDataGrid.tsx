@@ -1,4 +1,7 @@
-﻿import GridCancelButton from '@/components/app-data-grid/components/GridCancelButton';
+﻿import CustomGridNoData from '@/components/app-data-grid/components/CustomGridNoData';
+import CustomGridPagination from '@/components/app-data-grid/components/CustomGridPagination';
+import CustomGridToolbar from '@/components/app-data-grid/components/CustomGridToolbar';
+import GridCancelButton from '@/components/app-data-grid/components/GridCancelButton';
 import GridDeleteButton from '@/components/app-data-grid/components/GridDeleteButton';
 import GridEditButton from '@/components/app-data-grid/components/GridEditButton';
 import GridSaveButton from '@/components/app-data-grid/components/GridSaveButton';
@@ -30,14 +33,11 @@ import { ValidationError } from 'yup';
 
 import './app-data-grid.scss';
 
-import CustomGridNoData from './components/CustomGridNoData';
-import CustomGridPagination from './components/CustomGridPagination';
-import EditToolbar from './components/EditToolbar';
-
 interface AppDataGridProps {
   columns: AppGridColDef[];
   data: ((query: AppQueryParam) => Promise<AppQueryResult>) | Array<Record<string, any>>;
   getRowId?: GridRowIdGetter<any> | undefined;
+  gridTitle?: React.ReactNode;
 
   showCheckboxSelection?: boolean;
   resetSelectionOnPageSizeChanged?: boolean;
@@ -55,6 +55,8 @@ interface AppDataGridProps {
 
   onPaginationChange?: (model: GridPaginationModel) => void;
 
+  enableSearch?: boolean;
+
   [k: string]: any; // Other props of MUI Data grid
 }
 
@@ -64,6 +66,7 @@ const AppDataGrid = ({
   columns,
   data,
   getRowId,
+  gridTitle,
   showCheckboxSelection,
   resetSelectionOnPageSizeChanged = true,
   hideSelectAllButton,
@@ -94,6 +97,8 @@ const AppDataGrid = ({
     pageSize: 100,
   });
 
+  const [searchText, setSearchText] = useState<string | undefined>('');
+
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
 
   // Fetch data from server
@@ -106,6 +111,7 @@ const AppDataGrid = ({
           const gridInitialState: AppQueryParam = {
             pagination: paginationModel,
             sorting: sortModel,
+            searchText,
           };
 
           const response = await data(gridInitialState);
@@ -124,7 +130,7 @@ const AppDataGrid = ({
     };
 
     getData();
-  }, [data, paginationModel, sortModel]);
+  }, [data, paginationModel, sortModel, searchText]);
 
   const onSortModelChange = (model: GridSortModel) => {
     onSortChange?.(model);
@@ -151,6 +157,10 @@ const AppDataGrid = ({
     setPaginationModel(model);
   };
 
+  const onSearchChanged = (searchText: string | undefined) => {
+    setSearchText(searchText);
+  };
+
   const onRowEditStart = (params: GridRowParams, event: MuiEvent<React.SyntheticEvent>) => {
     event.defaultMuiPrevented = true;
   };
@@ -161,11 +171,6 @@ const AppDataGrid = ({
 
   const onRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
     setRowModesModel(newRowModesModel);
-  };
-
-  const onAddRow = () => {
-    console.log('Grid toolbar add');
-    onAdd?.();
   };
 
   const onEditRow = useCallback(
@@ -311,10 +316,10 @@ const AppDataGrid = ({
         pagination: CustomGridPagination,
         noRowsOverlay: CustomGridNoData,
         noResultsOverlay: CustomGridNoData,
-        toolbar: enableInlineEdit ? EditToolbar : undefined,
+        toolbar: CustomGridToolbar,
       }}
       slotProps={{
-        toolbar: { onAddRow },
+        toolbar: { gridTitle, onAdd, onSearchChanged },
       }}
       sortingMode={gridMode}
       sortModel={sortModel}
