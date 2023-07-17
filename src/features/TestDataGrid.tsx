@@ -80,7 +80,7 @@ const TestDataGrid = () => {
           apiRef={apiRef}
           columns={columns}
           data={data}
-          title={<Typography variant="h4">CRUD table</Typography>}
+          gridTitle={<Typography variant="h4">CRUD table</Typography>}
           enableInlineEdit
           onAdd={() => console.log('Add')}
         />
