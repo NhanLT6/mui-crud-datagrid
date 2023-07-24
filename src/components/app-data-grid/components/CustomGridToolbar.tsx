@@ -44,7 +44,7 @@ const SearchField = ({ value, onChange }: { value?: string; onChange?: (searchTe
   );
 };
 
-const CustomGridToolbar = ({ gridTitle, onAdd, enableSearch = true, onSearchChanged }: CustomGridToolbarProps) => {
+const CustomGridToolbar = ({ gridTitle, onAdd, enableSearch, onSearchChanged }: CustomGridToolbarProps) => {
   const [searchText, setSearchText] = useState<string | undefined>('');
 
   const handleAdd = () => {

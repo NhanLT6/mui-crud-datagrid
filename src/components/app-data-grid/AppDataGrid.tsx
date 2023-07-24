@@ -75,6 +75,7 @@ const AppDataGrid = ({
   onSortChange,
   onPaginationChange,
   enableInlineEdit,
+  enableSearch,
   onAdd,
   onEdit,
   onSave,
@@ -319,7 +320,7 @@ const AppDataGrid = ({
         toolbar: CustomGridToolbar,
       }}
       slotProps={{
-        toolbar: { gridTitle, onAdd, onSearchChanged },
+        toolbar: { gridTitle, enableSearch, onAdd, onSearchChanged },
       }}
       sortingMode={gridMode}
       sortModel={sortModel}
