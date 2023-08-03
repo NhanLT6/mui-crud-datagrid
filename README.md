@@ -2,7 +2,8 @@
 
 ## Features
 
-- MUI DataGrid to display data
+- Built on top of MUI DataGrid to display and edit data
+- Support local and remote data, automactically change mode base on input
 - Support inline edit
 - Support validation with yup schema
 
